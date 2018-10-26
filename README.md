@@ -1,12 +1,8 @@
 # PGA Parser
 
-> verb (chiefly Scottish)
-> 
-> talk in a long-winded way without making very much sense: _there's plenty of stuff I could blether about from today._
+PGA Parser is a C# console application for exploring the .NET Core SDK. It reads player information and scores from a CSV file and extracts key information requested by the user.
 
-PGA Parser is a C# console application for exploring the .NET Core SDK.
-
-PGA Parser reads a CSV and extracts key information requested by the user. Valid options are
+Options are
 
 * Top 10 players (done ✅)
 * Top 10 players on the front 9 (todo)
