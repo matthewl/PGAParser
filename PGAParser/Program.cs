@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -14,17 +14,23 @@ namespace PGAParser
             if (args.Length == 0)
             {
                 // WriteHelpLines();
-                TopPlayers();
+                BestBackNinePlayers();
             }
             else
             {
                 switch (args[0])
                 {
                     case "-g":
-                        GeneratePlayerData();
+                        GenerateScoreData();
                         break;
                     case "-t":
                         TopPlayers();
+                        break;
+                    case "-f":
+                        BestFrontNinePlayers();
+                        break;
+                    case "-r":
+                        BestBackNinePlayers();
                         break;
                 }
             }
@@ -44,13 +50,13 @@ namespace PGAParser
             System.Console.WriteLine("  -r   Return the top 10 players on the back nine");
         }
 
-        public static void GeneratePlayerData()
+        public static void GenerateScoreData()
         {
-            string[] Players = new string[] { "Tiger Woods, USA", "Rory McIlroy, NI", "Ian Poulter, ENG" };
+            string[] players = System.IO.File.ReadAllLines(@"players.csv");
 
-            using (StreamWriter file = new StreamWriter(@"players.csv"))
+            using (StreamWriter file = new StreamWriter(@"scores.csv"))
             {
-                foreach (string player in Players)
+                foreach (string player in players)
                 {
                     StringBuilder sb = new StringBuilder();
                     sb.Append(player);
@@ -64,18 +70,93 @@ namespace PGAParser
 
         public static void TopPlayers()
         {
-            string[] lines = System.IO.File.ReadAllLines(@"players.csv");
-            SortedList topPlayers = new SortedList();
+            string[] lines = System.IO.File.ReadAllLines(@"scores.csv");
+            List<PlayerCard> ReturnedCards = new List<PlayerCard>();
 
             foreach (string line in lines)
             {
                 PlayerCard playerCard = new PlayerCard(line);
-                topPlayers.Add(playerCard.name, playerCard.score);
+                ReturnedCards.Add(playerCard);
             }
 
-            for (int i = 0; i < topPlayers.Capacity; i++)
+            ReturnedCards.Sort(delegate (PlayerCard x, PlayerCard y)
             {
-                Console.WriteLine("       {0,-6}: {1}", topPlayers.GetKey(i), topPlayers.GetByIndex(i));
+                if (x.Score == null && y.Score == null) return 0;
+                else if (x.Score == null) return -1;
+                else if (y.Score == null) return 1;
+                else return x.Score.CompareTo(y.Score);
+            });
+
+            int playerCount = 0;
+
+            foreach (PlayerCard ReturnedCard in ReturnedCards)
+            {
+                playerCount++;
+                if (playerCount <= numOfPlayers) {
+                    Console.WriteLine("{0}, {1}", ReturnedCard.Name, ReturnedCard.Score);
+                }
+            }
+        }
+
+        public static void BestFrontNinePlayers()
+        {
+            string[] lines = System.IO.File.ReadAllLines(@"scores.csv");
+            List<PlayerCard> ReturnedCards = new List<PlayerCard>();
+
+            foreach (string line in lines)
+            {
+                PlayerCard playerCard = new PlayerCard(line);
+                ReturnedCards.Add(playerCard);
+            }
+
+            ReturnedCards.Sort(delegate (PlayerCard x, PlayerCard y)
+            {
+                if (x.Front == null && y.Front == null) return 0;
+                else if (x.Front == null) return -1;
+                else if (y.Front == null) return 1;
+                else return x.Front.CompareTo(y.Front);
+            });
+
+            int playerCount = 0;
+
+            foreach (PlayerCard ReturnedCard in ReturnedCards)
+            {
+                playerCount++;
+                if (playerCount <= numOfPlayers)
+                {
+                    Console.WriteLine("{0}, {1}", ReturnedCard.Name, ReturnedCard.Front);
+                }
+            }
+        }
+
+        public static void BestBackNinePlayers()
+        {
+            string[] lines = System.IO.File.ReadAllLines(@"scores.csv");
+            List<PlayerCard> ReturnedCards = new List<PlayerCard>();
+
+            foreach (string line in lines)
+            {
+                PlayerCard playerCard = new PlayerCard(line);
+                ReturnedCards.Add(playerCard);
+            }
+
+            ReturnedCards.Sort(delegate (PlayerCard x, PlayerCard y)
+            {
+                if (x.Rear == null && y.Rear == null) return 0;
+                else if (x.Rear == null) return -1;
+                else if (y.Rear == null) return 1;
+                else return x.Front.CompareTo(y.Rear);
+            });
+
+            int playerCount = 0;
+
+            foreach (PlayerCard ReturnedCard in ReturnedCards)
+            {
+                playerCount++;
+                if (playerCount <= numOfPlayers)
+                {
+                    Console.WriteLine("{0}, {1}", ReturnedCard.Name, ReturnedCard.Rear);
+                }
             }
         }
 
@@ -85,30 +166,54 @@ namespace PGAParser
         }
     }
 
-    class PlayerCard
+    class PlayerCard : IComparable<PlayerCard>
     {
-        public string name;
-        public string country;
-        public int score;
+        public string Name;
+        public string Country;
+        public int Score;
+        public int Front;
+        public int Rear;
 
         public PlayerCard(string data)
         {
             string[] playerInfo = data.Split(",");
-            name = playerInfo[0];
-            country = playerInfo[1];
-            score = TotalScore(playerInfo);
+            Name = playerInfo[0];
+            Country = playerInfo[1];
+            Score = TotalScore(playerInfo);
+            Front = PartialScore(playerInfo, 2, 10);
+            Rear = PartialScore(playerInfo, 11, 19);
         }
 
-        private int TotalScore(string[] playerInfo)
+        public int CompareTo(PlayerCard comparePlayerCard)
         {
-            int totalScore = 0;
+            if (comparePlayerCard == null)
+                return 1;
+            else
+                return this.Name.CompareTo(comparePlayerCard.Name);
+        }
 
-            for (int i = 2; i < playerInfo.Length; i += 1)
+        private int TotalScore(string[] PlayerInfo)
+        {
+            int Score = 0;
+
+            for (int i = 2; i < PlayerInfo.Length; i += 1)
             {
-                totalScore += Convert.ToInt32(playerInfo[i]);
+                Score += Convert.ToInt32(PlayerInfo[i]);
             }
 
-            return totalScore;
+            return Score;
+        }
+
+        private int PartialScore(string[] PlayerInfo, int Start, int Finish)
+        {
+            int Score = 0;
+
+            for (int i = Start; i <= Finish; i += 1)
+            {
+                Score += Convert.ToInt32(PlayerInfo[i]);
+            }
+
+            return Score;
         }
 
     }
