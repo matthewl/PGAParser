@@ -7,8 +7,8 @@ Options are
 * Top 10 players (done ✅)
 * Top 10 players on the front 9 (done ✅)
 * Top 10 players on the back 9 (done ✅)
-* Top 10 players with consecutive birdies or better (todo)
-* Top 10 players with consecutive pars or better (todo)
+* Top 10 players with consecutive birdies or better (done ✅)
+* Top 10 players with consecutive pars or better (done ✅)
 
 Todo list:
 
