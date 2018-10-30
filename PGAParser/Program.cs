@@ -13,8 +13,7 @@ namespace PGAParser
         {
             if (args.Length == 0)
             {
-                // WriteHelpLines();
-                BestBackNinePlayers();
+                WriteHelpLines();
             }
             else
             {
@@ -32,6 +31,12 @@ namespace PGAParser
                     case "-r":
                         BestBackNinePlayers();
                         break;
+                    case "-p":
+                        BestParsOrBetterPlayers();
+                        break;
+                    case "-b":
+                        BestBirdiesOrBetterPlayers();
+                        break;
                 }
             }
         }
@@ -44,10 +49,10 @@ namespace PGAParser
             System.Console.WriteLine("Options:");
             System.Console.WriteLine("  -g   Generates a new set of score data");
             System.Console.WriteLine("  -t   Return the top 10 players");
-            System.Console.WriteLine("  -p   Return the top 10 players with the most consecutive pars or better");
-            System.Console.WriteLine("  -b   Return the top 10 players with the most consecutive birdies or better");
             System.Console.WriteLine("  -f   Return the top 10 players on the front nine");
             System.Console.WriteLine("  -r   Return the top 10 players on the back nine");
+            System.Console.WriteLine("  -p   Return the top 10 players with the most consecutive pars or better");
+            System.Console.WriteLine("  -b   Return the top 10 players with the most consecutive birdies or better");
         }
 
         public static void GenerateScoreData()
@@ -61,30 +66,33 @@ namespace PGAParser
                     StringBuilder sb = new StringBuilder();
                     sb.Append(player);
                     sb.Append(",");
-                    sb.Append(Scorecard.Scores(AugustaScoreCard()));
+                    sb.Append(Scorecard.Scores(PGAParser.CourseCard.AugustaScoreCard()));
 
                     file.WriteLine(sb.ToString());
                 }
             }
         }
 
-        public static void TopPlayers()
+        public static List<PlayerCard> GetReturnedCards()
         {
             string[] lines = System.IO.File.ReadAllLines(@"scores.csv");
             List<PlayerCard> ReturnedCards = new List<PlayerCard>();
 
             foreach (string line in lines)
             {
-                PlayerCard playerCard = new PlayerCard(line);
+                PlayerCard playerCard = new PlayerCard(line, PGAParser.CourseCard.AugustaScoreCard());
                 ReturnedCards.Add(playerCard);
             }
 
+            return ReturnedCards;
+        }
+
+        public static void TopPlayers()
+        {
+            List<PlayerCard> ReturnedCards = GetReturnedCards();
             ReturnedCards.Sort(delegate (PlayerCard x, PlayerCard y)
             {
-                if (x.Score == null && y.Score == null) return 0;
-                else if (x.Score == null) return -1;
-                else if (y.Score == null) return 1;
-                else return x.Score.CompareTo(y.Score);
+                return x.Score.CompareTo(y.Score);
             });
 
             int playerCount = 0;
@@ -100,21 +108,10 @@ namespace PGAParser
 
         public static void BestFrontNinePlayers()
         {
-            string[] lines = System.IO.File.ReadAllLines(@"scores.csv");
-            List<PlayerCard> ReturnedCards = new List<PlayerCard>();
-
-            foreach (string line in lines)
-            {
-                PlayerCard playerCard = new PlayerCard(line);
-                ReturnedCards.Add(playerCard);
-            }
-
+            List<PlayerCard> ReturnedCards = GetReturnedCards();
             ReturnedCards.Sort(delegate (PlayerCard x, PlayerCard y)
             {
-                if (x.Front == null && y.Front == null) return 0;
-                else if (x.Front == null) return -1;
-                else if (y.Front == null) return 1;
-                else return x.Front.CompareTo(y.Front);
+                return x.Front.CompareTo(y.Front);
             });
 
             int playerCount = 0;
@@ -131,21 +128,10 @@ namespace PGAParser
 
         public static void BestBackNinePlayers()
         {
-            string[] lines = System.IO.File.ReadAllLines(@"scores.csv");
-            List<PlayerCard> ReturnedCards = new List<PlayerCard>();
-
-            foreach (string line in lines)
-            {
-                PlayerCard playerCard = new PlayerCard(line);
-                ReturnedCards.Add(playerCard);
-            }
-
+            List<PlayerCard> ReturnedCards = GetReturnedCards();
             ReturnedCards.Sort(delegate (PlayerCard x, PlayerCard y)
             {
-                if (x.Rear == null && y.Rear == null) return 0;
-                else if (x.Rear == null) return -1;
-                else if (y.Rear == null) return 1;
-                else return x.Front.CompareTo(y.Rear);
+                return x.Front.CompareTo(y.Rear);
             });
 
             int playerCount = 0;
@@ -160,6 +146,50 @@ namespace PGAParser
             }
         }
 
+
+        public static void BestParsOrBetterPlayers()
+        {
+            List<PlayerCard> ReturnedCards = GetReturnedCards();
+            ReturnedCards.Sort(delegate (PlayerCard x, PlayerCard y)
+            {
+                return y.ParsOrBetter.CompareTo(x.ParsOrBetter);
+            });
+
+            int playerCount = 0;
+
+            foreach (PlayerCard ReturnedCard in ReturnedCards)
+            {
+                playerCount++;
+                if (playerCount <= numOfPlayers)
+                {
+                    Console.WriteLine("{0}, {1}", ReturnedCard.Name, ReturnedCard.ParsOrBetter);
+                }
+            }
+        }
+
+        public static void BestBirdiesOrBetterPlayers()
+        {
+            List<PlayerCard> ReturnedCards = GetReturnedCards();
+            ReturnedCards.Sort(delegate (PlayerCard x, PlayerCard y)
+            {
+                return y.BirdiesOrBetter.CompareTo(x.BirdiesOrBetter);
+            });
+
+            int playerCount = 0;
+
+            foreach (PlayerCard ReturnedCard in ReturnedCards)
+            {
+                playerCount++;
+                if (playerCount <= numOfPlayers)
+                {
+                    Console.WriteLine("{0}, {1}", ReturnedCard.Name, ReturnedCard.BirdiesOrBetter);
+                }
+            }
+        }
+    }
+
+    public static class CourseCard
+    {
         public static int[] AugustaScoreCard()
         {
             return new int[] { 4, 5, 4, 3, 4, 3, 4, 5, 4, 4, 4, 3, 5, 4, 5, 3, 4, 4 };
@@ -173,15 +203,19 @@ namespace PGAParser
         public int Score;
         public int Front;
         public int Rear;
+        public int ParsOrBetter;
+        public int BirdiesOrBetter;
 
-        public PlayerCard(string data)
+        public PlayerCard(string data, int[] CourseCard)
         {
-            string[] playerInfo = data.Split(",");
-            Name = playerInfo[0];
-            Country = playerInfo[1];
-            Score = TotalScore(playerInfo);
-            Front = PartialScore(playerInfo, 2, 10);
-            Rear = PartialScore(playerInfo, 11, 19);
+            string[] PlayerInfo = data.Split(",");
+            Name = PlayerInfo[0];
+            Country = PlayerInfo[1];
+            Score = TotalScore(PlayerInfo);
+            Front = PartialScore(PlayerInfo, 2, 10);
+            Rear = PartialScore(PlayerInfo, 11, 19);
+            ParsOrBetter = CalculateParsOrBetter(PlayerInfo, CourseCard);
+            BirdiesOrBetter = CalculateBirdiesOrBetter(PlayerInfo, CourseCard);
         }
 
         public int CompareTo(PlayerCard comparePlayerCard)
@@ -214,6 +248,52 @@ namespace PGAParser
             }
 
             return Score;
+        }
+
+        private int CalculateParsOrBetter(string[] PlayerInfo, int[] CourseCard)
+        {
+            int NumOfHoles = 0;
+            int CurrentStreak = 0;
+
+            for (int i = 0; i < 18; i += 1)
+            {
+                if (Convert.ToInt32(PlayerInfo[i + 2]) <= CourseCard[i]) {
+                    CurrentStreak++;
+                } else {
+                    CurrentStreak = 0;
+                }
+
+                if (CurrentStreak > NumOfHoles) {
+                    NumOfHoles = CurrentStreak;
+                }
+            }
+
+            return NumOfHoles;
+        }
+
+        private int CalculateBirdiesOrBetter(string[] PlayerInfo, int[] CourseCard)
+        {
+            int NumOfHoles = 0;
+            int CurrentStreak = 0;
+
+            for (int i = 0; i < 18; i += 1)
+            {
+                if (Convert.ToInt32(PlayerInfo[i + 2]) < CourseCard[i])
+                {
+                    CurrentStreak++;
+                }
+                else
+                {
+                    CurrentStreak = 0;
+                }
+
+                if (CurrentStreak > NumOfHoles)
+                {
+                    NumOfHoles = CurrentStreak;
+                }
+            }
+
+            return NumOfHoles;
         }
 
     }
